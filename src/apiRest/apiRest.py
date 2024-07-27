@@ -10,7 +10,11 @@ from functools import wraps
 #------------------------CONTROLE-DE-ACESSO---------------------------
 
 app = Flask(__name__)
-limit = Limiter(app, strategy='fixed-window-elastic-expiry').shared_limit('480 per minute, 40 per second', 'global', error_message='Try again later.')
+# Old
+# limit = Limiter(app, strategy='fixed-window-elastic-expiry').shared_limit('480 per minute, 40 per second', 'global', error_message='Try again later.')
+# New
+limiter = Limiter(app, strategy='fixed-window-elastic-expiry')
+global_limit = limiter.shared_limit('480 per minute, 40 per second', 'global', error_message='Try again later.')
 
 def valida_curso(curso, antigo):
     try: assert re.match('^[a-z_]*$', curso)
@@ -20,12 +24,16 @@ def valida_curso(curso, antigo):
     else: command = 'select * from preanalytics2015.cursos as c where c.schema = "%s"' % curso
     if len(get_rows(command)) == 0: raise NotFound
 
-class interface:
+class Interface:
     def __init__(self, url):
         self.url = url
 
     def __call__(self, func):
-        @wraps(limit(func))
+        # Old
+        # @wraps(limit(func))
+        # New
+        @wraps(func)
+        @global_limit
         def decorator(*args, **kargs):
             if 'curso' in kargs: valida_curso(kargs['curso'], antigo=False)
             if 'curso' in request.args: valida_curso(request.args['curso'], antigo=True)
@@ -42,21 +50,33 @@ def add_headers(response):
 
 #-------------------------INTERFACE-WEB-------------------------------
 
-execfile('apiRestOld.py')
+# # Old
+# execfile('apiRestOld.py')
+# New
+with open('apiRestOld.py') as f:
+    code = compile(f.read(), 'apiRestOld.py', 'exec')
+    exec(code)
 
-@interface('/cursos_2015')
+# Adicionado por pedro apenas para testar
+# ------ Inicio -------- 
+@Interface('/pedro')
+def meu_nome():
+    return 'meunome'
+# ------  Fim   --------
+
+@Interface('/cursos_2015')
 def cursos_novos():
     command = 'select # from preanalytics2015.cursos where disponivel=true'
     cols = ['schema', 'campus', 'nome_comum']
     return retrieve(command, cols)
 
-@interface('/<curso>')
+@Interface('/<curso>')
 def info_curso(curso):
     command = 'select # from preanalytics2015.cursos where `schema`="' + curso + '"'
     cols = ['codigo_curso', 'curso', 'nome_comum', 'campus', 'codigo_emec', 'turno', 'horas', 'tempo_minimo', 'vagas_primeira', 'vagas_segunda', 'ato_normativo']
     return retrieve(command, cols, single=True)
 
-@interface('/<curso>/disciplinas')
+@Interface('/<curso>/disciplinas')
 def disciplinas(curso):
     command = 'select # from ' + curso + '.disciplinas'
     cols = ['codigo_disciplina', 'disciplina', 'tipo', 'codigo_departamento', 'semestre', 'horas', 'creditos']
@@ -79,19 +99,19 @@ def disciplinas(curso):
     result = sorted(mapa.values(), key=lambda x:x['semestre'])
     return result
 
-@interface('/<curso>/taxa-sucesso')
+@Interface('/<curso>/taxa-sucesso')
 def taxa_sucesso(curso):
     command = 'select # from ' + curso + '.aprovacoes'
     cols = ['codigo_disciplina', 'aprovados', 'total', 'periodo']
     return retrieve(command, cols)
 
-@interface('/<curso>/taxa-sucesso/periodos')
+@Interface('/<curso>/taxa-sucesso/periodos')
 def taxa_sucesso_periodos(curso):
     command = 'select min(periodo), max(periodo) from ' + curso + '.aprovacoes'
     cols = ['min_periodo', 'max_periodo']
     return retrieve(command, cols, single=True)
 
-@interface('/<curso>/correlacao')
+@Interface('/<curso>/correlacao')
 def correlacao(curso):
     param = {'periodo_inicial' : 0.1, 'periodo_final' : 3000.2, 'schema': '"%s"' % curso}
     data = open_cpu('precor', 'calcula_correlacao/json', param).json()
@@ -118,7 +138,7 @@ def correlacao(curso):
 
     return {'disciplinas': disciplinas, 'correlacoes': correlacoes}
 
-@interface('/<curso>/recomendacao')
+@Interface('/<curso>/recomendacao')
 def recomendacao(curso):
     escolhas = request.args.get('disciplinas')
     historico = request.args.get('historico')
@@ -155,7 +175,7 @@ def recomendacao(curso):
 
     return disciplinas_recomendadas(curso, historico, escolhas, nao_cursei)
 
-@interface('/<curso>/analise')
+@Interface('/<curso>/analise')
 def analise(curso):
     escolhas = request.args.get('escolhas')
     historico = request.args.get('historico')
@@ -240,14 +260,14 @@ def analise(curso):
         'probabilidade_matricula': probabilidade_matricula(historico, escolhas, curso)
     }
 
-@interface('/<curso>/formandos')
+@Interface('/<curso>/formandos')
 def formandos(curso):
     command = 'select A.periodo, ingressos, ifnull(formandos, 0) formandos from (select periodo_ingressao periodo, count(id_aluno) ingressos from ' + curso + '.alunos group by periodo_ingressao) A left join (select periodo_ingressao periodo, count(id_aluno) formandos from ' + curso + '.alunos where codigo_evasao in (1, 20) group by periodo_ingressao) B on A.periodo = B.periodo'
     cols = ['periodo', 'ingressos', 'formandos']
 
     return retrieve(command, cols)
 
-@interface('/<curso>/estatisticas')
+@Interface('/<curso>/estatisticas')
 def estatisticas(curso):
 	def situacao():
 		command = 'select codigo_evasao, count(codigo_evasao) from ' + curso + '.alunos where codigo_evasao in (0, 1) group by codigo_evasao'
@@ -310,4 +330,7 @@ def format_response(response):
 #--------------------------------MAIN---------------------------------
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5005)
+    # Old
+    # app.run(host='0.0.0.0', port=5005)
+    # New
+    app.run(host='127.0.0.1', port=5005)

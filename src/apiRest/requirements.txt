@@ -1,0 +1,8 @@
+# Using python==3.8
+requests
+pandas
+sqlalchemy
+mysql-connector-python
+unidecode
+pyodbc
+flask_limiter
