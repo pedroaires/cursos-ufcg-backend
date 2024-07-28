@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-import json, pyodbc, re, requests
+import json, pyodbc, re, requests, os
+import mysql.connector
+from dotenv import load_dotenv
 from flask_limiter import Limiter
 from flask import Flask, request, make_response
 from werkzeug.exceptions import NotFound, BadRequest
@@ -15,13 +16,17 @@ app = Flask(__name__)
 # New
 limiter = Limiter(app, strategy='fixed-window-elastic-expiry')
 global_limit = limiter.shared_limit('480 per minute, 40 per second', 'global', error_message='Try again later.')
+# End New
+
+load_dotenv()
+BASE_DB = os.getenv('BASE_DB')
 
 def valida_curso(curso, antigo):
     try: assert re.match('^[a-z_]*$', curso)
     except: raise NotFound
 
     if antigo: command = 'select * from Curso where NomeSchema = "%s"' % curso
-    else: command = 'select * from preanalytics2015.cursos as c where c.schema = "%s"' % curso
+    else: command = f'select * from {BASE_DB}.cursos as c where c.schema = "%s"' % curso
     if len(get_rows(command)) == 0: raise NotFound
 
 class Interface:
@@ -53,7 +58,9 @@ def add_headers(response):
 # # Old
 # execfile('apiRestOld.py')
 # New
-with open('apiRestOld.py') as f:
+current_dir = os.path.dirname(os.path.abspath(__file__))
+abs_file_path = os.path.join(current_dir, 'apiRestOld.py')
+with open(abs_file_path) as f:
     code = compile(f.read(), 'apiRestOld.py', 'exec')
     exec(code)
 
@@ -66,20 +73,21 @@ def meu_nome():
 
 @Interface('/cursos_2015')
 def cursos_novos():
-    command = 'select # from preanalytics2015.cursos where disponivel=true'
+    command = f'select # from {BASE_DB}.cursos where disponivel=true'
     cols = ['schema', 'campus', 'nome_comum']
     return retrieve(command, cols)
 
 @Interface('/<curso>')
 def info_curso(curso):
-    command = 'select # from preanalytics2015.cursos where `schema`="' + curso + '"'
+    command = f'select # from {BASE_DB}.cursos where `schema`="' + curso + '"'
     cols = ['codigo_curso', 'curso', 'nome_comum', 'campus', 'codigo_emec', 'turno', 'horas', 'tempo_minimo', 'vagas_primeira', 'vagas_segunda', 'ato_normativo']
     return retrieve(command, cols, single=True)
 
 @Interface('/<curso>/disciplinas')
 def disciplinas(curso):
     command = 'select # from ' + curso + '.disciplinas'
-    cols = ['codigo_disciplina', 'disciplina', 'tipo', 'codigo_departamento', 'semestre', 'horas', 'creditos']
+    # cols = ['codigo_disciplina', 'disciplina', 'tipo', 'codigo_departamento', 'semestre', 'horas', 'creditos']
+    cols = ['codigo_disciplina', 'disciplina', 'tipo', 'semestre', 'horas', 'creditos']
     table = retrieve(command, cols)
 
     mapa = {}
@@ -93,8 +101,11 @@ def disciplinas(curso):
     table = retrieve(command, cols)
 
     for p in table:
-        mapa[p['codigo_disciplina']]['pre_requisitos'].append(p['codigo_prerequisito'])
-        mapa[p['codigo_prerequisito']]['pos_requisitos'].append(p['codigo_disciplina'])
+        cod_disc = str(p['codigo_disciplina'])
+        cod_prereq = str(p['codigo_prerequisito'])
+    
+        mapa[cod_disc]['pre_requisitos'].append(cod_prereq)
+        mapa[cod_prereq]['pos_requisitos'].append(cod_disc)
 
     result = sorted(mapa.values(), key=lambda x:x['semestre'])
     return result
@@ -230,11 +241,11 @@ def analise(curso):
         return float(response.split()[1])
 
     def dificuldade(escolhas, curso):
-        command = 'select # from preanalytics2015.cursos where `schema` = "%s"' % curso
+        command = f'select # from {BASE_DB}.cursos where `schema` = "%s"' % curso
         cols = ['codigo_curso']
         codigo_curso = retrieve(command, cols, True)['codigo_curso']
 
-        command = 'select DISTINCT(#) from preanalytics2015.disciplinas where codigo_curso = %d' % codigo_curso
+        command = f'select DISTINCT(#) from {BASE_DB}.disciplinas where codigo_curso = %d' % codigo_curso
         cols = ['codigo_disciplina']
         disciplinas = retrieve(command, cols)
 
@@ -292,7 +303,38 @@ def estatisticas(curso):
 #-------------------------PROCESSAMENTO-------------------------------
 
 def create_connection():
-    return pyodbc.connect('DSN=MyPRE; CHARSET=UTF8; UID=api-rest; PWD=restingplebeu')
+    use_dsn = os.getenv('USE_DSN', 'false').lower() == 'true'
+
+    if use_dsn:
+        # For DSN connection
+        # .env example:
+        # USE_DSN=true
+        # DSN_NAME=MyPRE
+        # DSN_CHARSET=UTF8
+        # DSN_UID=api-rest
+        # DSN_PWD=restingplebeu
+
+        # DSN connection
+        dsn = os.getenv('DSN_NAME')
+        charset = os.getenv('DSN_CHARSET')
+        uid = os.getenv('DSN_UID')
+        pwd = os.getenv('DSN_PWD')
+        connection_string = f'DSN={dsn}; CHARSET={charset}; UID={uid}; PWD={pwd}'
+        return pyodbc.connect(connection_string)
+    else:
+        # Direct connection
+        server = os.getenv('DB_SERVER')
+        port = os.getenv('DB_PORT')
+        user = os.getenv('DB_USER')
+        password = os.getenv('DB_PASSWORD')
+
+        connection = mysql.connector.connect(
+            host=server,
+            port=port,
+            user=user,
+            password=password
+        )
+        return connection
 
 def open_cpu(package, method, params):
    return requests.post('http://pre-ocpu/ocpu/library/' + package + '/R/' + method, data=params)
