@@ -80,7 +80,8 @@ def cursos_novos():
 @Interface('/<curso>')
 def info_curso(curso):
     command = f'select # from {BASE_DB}.cursos where `schema`="' + curso + '"'
-    cols = ['codigo_curso', 'curso', 'nome_comum', 'campus', 'codigo_emec', 'turno', 'horas', 'tempo_minimo', 'vagas_primeira', 'vagas_segunda', 'ato_normativo']
+    # cols = ['codigo_curso', 'curso', 'nome_comum', 'campus', 'codigo_emec', 'turno', 'horas', 'tempo_minimo', 'vagas_primeira', 'vagas_segunda', 'ato_normativo']
+    cols = ['codigo_curso', 'nome_comum', 'campus']
     return retrieve(command, cols, single=True)
 
 @Interface('/<curso>/disciplinas')
