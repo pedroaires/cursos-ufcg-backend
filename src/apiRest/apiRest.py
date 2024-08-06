@@ -163,13 +163,10 @@ def correlacao(curso):
 
 @Interface('/<curso>/recomendacao')
 def recomendacao(curso):
-    print("/recomendacao")
-    escolhas = request.args.get('disciplinas')
-    historico = request.args.get('historico')
-    nao_cursei = request.args.get('nao_cursei')
-    print(f"Escolhas: {escolhas}")
-    print(f"Historico: {historico}")
-    print(f"Nao_cursei: {nao_cursei}")
+    data = request.get_json()
+    escolhas = data.get('disciplinas')
+    historico = data.get('historico')
+    nao_cursei = data.get('nao_cursei')
     # try:
     #     assert re.match('\[(\d{7}(,\d{7})*)?]$', escolhas)
     #     assert re.match('\[(\d{7}(,\d{7})*)?]$', historico)
