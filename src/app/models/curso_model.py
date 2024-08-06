@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, String, Boolean
 from app.utils.db import Base
 
 class Curso(Base):
@@ -11,4 +11,4 @@ class Curso(Base):
     campus = Column(String, index=True)
 
     def __repr__(self):
-        return f"Curso: {self.nome_comum}"
+        return f"Curso: {self.nome_comum}, Codigo: {self.codigo_curso}, Campus: {self.campus}"

@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.utils.db import get_db
 from pydantic import BaseModel
-from app.models.curso_model import Curso
+from app.services.curso_service import CursoService
 from typing import List
 
 
@@ -19,15 +19,12 @@ def home():
 
 @router.get("/cursos", response_model=List[CursoIndice], summary="Lista cursos da UFCG")
 def get_cursos(db: Session = Depends(get_db)) -> List[CursoIndice]:
-    try:
-        cursos = db.query(Curso).all()
-
-        return [
-            CursoIndice(
-                nome_comum=curso.nome_comum,
-                schema=curso.schema,
-                campus=curso.campus
-            ) for curso in cursos
-        ]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    
+    cursos = CursoService.get_cursos_ativos(db)
+    return [
+        CursoIndice(
+            nome_comum=curso.nome_comum,
+            schema=curso.schema,
+            campus=curso.campus
+        ) for curso in cursos
+    ]
