@@ -7,12 +7,14 @@ from flask_limiter import Limiter
 from flask import Flask, request, make_response
 from werkzeug.exceptions import NotFound, BadRequest
 from functools import wraps
+import logging
 
 #------------------------CONTROLE-DE-ACESSO---------------------------
 
 app = Flask(__name__)
 # Old
 # limit = Limiter(app, strategy='fixed-window-elastic-expiry').shared_limit('480 per minute, 40 per second', 'global', error_message='Try again later.')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 # New
 limiter = Limiter(app, strategy='fixed-window-elastic-expiry')
 global_limit = limiter.shared_limit('480 per minute, 40 per second', 'global', error_message='Try again later.')
@@ -45,11 +47,20 @@ class Interface:
             return format_response(func(*args, **kargs))
 
         return app.route(self.url)(decorator)
+@app.before_request
+def log_request_info():
+    app.logger.info('Request Headers: %s', request.headers)
+    app.logger.info('Request Body: %s', request.get_data())
 
+@app.after_request
+def log_response_info(response):
+    app.logger.info('Response Status: %s', response.status)
+    app.logger.info('Response Body: %s', response.get_data())
+    return response
 @app.after_request
 def add_headers(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Headers'] = 'Authorization'
+    response.headers['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
     response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
     return response
 
@@ -152,15 +163,18 @@ def correlacao(curso):
 
 @Interface('/<curso>/recomendacao')
 def recomendacao(curso):
+    print("/recomendacao")
     escolhas = request.args.get('disciplinas')
     historico = request.args.get('historico')
     nao_cursei = request.args.get('nao_cursei')
-
-    try:
-        assert re.match('\[(\d{7}(,\d{7})*)?]$', escolhas)
-        assert re.match('\[(\d{7}(,\d{7})*)?]$', historico)
-    except:
-        raise BadRequest
+    print(f"Escolhas: {escolhas}")
+    print(f"Historico: {historico}")
+    print(f"Nao_cursei: {nao_cursei}")
+    # try:
+    #     assert re.match('\[(\d{7}(,\d{7})*)?]$', escolhas)
+    #     assert re.match('\[(\d{7}(,\d{7})*)?]$', historico)
+    # except:
+    #     raise BadRequest
 
     escolhas = json.loads(escolhas)
     historico = json.loads(historico)
@@ -189,17 +203,22 @@ def recomendacao(curso):
 
 @Interface('/<curso>/analise')
 def analise(curso):
-    escolhas = request.args.get('escolhas')
-    historico = request.args.get('historico')
+    print("/analise")
+    data = request.get_json()
+    escolhas = data.get("escolhas")
+    historico = data.get("historico")
+    # escolhas = request.args.get('escolhas')
+    # historico = request.args.get('historico')
+    print(f"Escolhas: {escolhas}")
+    print(f"Historico: {escolhas}")
+    # try:
+    #     assert re.match('\[(\d{7}(,\d{7})*)?]$', escolhas)
+    #     assert re.match('\[(\d{7}(,\d{7})*)?]$', historico)
+    # except:
+    #     raise BadRequest
 
-    try:
-        assert re.match('\[(\d{7}(,\d{7})*)?]$', escolhas)
-        assert re.match('\[(\d{7}(,\d{7})*)?]$', historico)
-    except:
-        raise BadRequest
-
-    escolhas = json.loads(escolhas)
-    historico = json.loads(historico)
+    # escolhas = json.loads(escolhas)
+    # historico = json.loads(historico)
 
     def list2str(A):
         return ','.join(map(str, A))
