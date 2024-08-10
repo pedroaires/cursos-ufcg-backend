@@ -1,5 +1,4 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case
 from app.repositories.aluno_repository import AlunoRepository
 from app.repositories.curso_repository import CursoRepository
 

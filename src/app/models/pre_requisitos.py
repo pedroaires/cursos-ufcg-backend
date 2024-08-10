@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import Column, String, ForeignKey
 from app.utils.db import Base
 
 class PreRequisitos(Base):

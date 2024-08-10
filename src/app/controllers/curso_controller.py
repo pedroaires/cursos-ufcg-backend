@@ -83,8 +83,8 @@ def get_disciplinas_by_curso(curso: str, db: Session = Depends(get_db)) -> List[
             semestre=disciplina['semestre'],
             horas=disciplina['horas'],
             creditos=disciplina['creditos'],
-            pre_requisitos=[str(d) for d in disciplina['pre_requisitos']],
-            pos_requisitos=[str(d) for d in disciplina['pos_requisitos']]
+            pre_requisitos=disciplina['pre_requisitos'],
+            pos_requisitos=disciplina['pos_requisitos']
         ) for disciplina in disciplinas_data
     ]
 

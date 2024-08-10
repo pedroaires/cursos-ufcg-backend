@@ -56,7 +56,8 @@ class DisciplinaService:
     
     @staticmethod
     def get_min_max_periodos(db: Session, curso_schema: str):
-        min_periodo = db.query(func.min(Aprovacao.periodo)).scalar()
-        max_periodo = db.query(func.max(Aprovacao.periodo)).scalar()
+        codigo_curso = CursoRepository.fetch_curso_by_schema(db, curso_schema).codigo_curso
+        min_periodo = db.query(func.min(Aprovacao.periodo)).filter(Aprovacao.codigo_curso == codigo_curso).scalar()
+        max_periodo = db.query(func.max(Aprovacao.periodo)).filter(Aprovacao.codigo_curso == codigo_curso).scalar()
         
         return min_periodo, max_periodo
