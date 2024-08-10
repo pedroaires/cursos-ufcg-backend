@@ -4,6 +4,7 @@ from app.utils.db import get_db
 from pydantic import BaseModel
 from app.services.curso_service import CursoService
 from app.services.disciplina_service import DisciplinaService
+from app.services.aluno_service import AlunoService
 from typing import List
 
 
@@ -38,6 +39,11 @@ class TaxaSucessoResponse(BaseModel):
 class TaxaSucessoPeriodosResponse(BaseModel):
     min_periodo: float
     max_periodo: float
+
+class FormandosResponse(BaseModel):
+    periodo: float
+    ingressos: int
+    formandos: int
 
 @router.get("/", response_model=str, summary="Cursos UFCG HOME")
 def home():
@@ -101,4 +107,15 @@ def get_taxa_sucesso_periodos(curso: str, db: Session = Depends(get_db)) -> Taxa
         min_periodo=min,
         max_periodo=max
     )
-    
+
+@router.get("/{curso}/formandos", response_model=List[FormandosResponse] , summary="Formandos de um curso")
+def get_ingressos_e_formandos(curso: str, db: Session = Depends(get_db)) -> List[FormandosResponse]:
+    formandos_data = AlunoService.get_ingressos_e_formandos_por_periodo(db, curso)
+
+    return [
+        FormandosResponse(
+            periodo=formando.periodo,
+            ingressos=formando.ingressos,
+            formandos=formando.formandos
+        ) for formando in formandos_data
+    ]
