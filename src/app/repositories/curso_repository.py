@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.curso_model import Curso
+from app.models.curso import Curso
 
 class CursoRepository:
 

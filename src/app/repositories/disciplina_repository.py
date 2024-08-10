@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.disciplina_model import Disciplina
+from app.models.disciplina import Disciplina
 
 class DisciplinaRepository:
 

@@ -1,7 +1,9 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.repositories.curso_repository import CursoRepository
 from app.repositories.disciplina_repository import DisciplinaRepository
-from app.models.pre_requisitos_model import PreRequisitos
+from app.models.pre_requisitos import PreRequisitos
+from app.models.aprovacao import Aprovacao
 class DisciplinaService:
 
     @staticmethod
@@ -45,3 +47,16 @@ class DisciplinaService:
 
         except:
             raise Exception("Curso não encontrado")
+    
+    @staticmethod
+    def get_aprovacoes(db: Session, curso_schema: str):
+        curso = CursoRepository.fetch_curso_by_schema(db, curso_schema)
+        aprovacoes = db.query(Aprovacao).filter(Aprovacao.codigo_curso == curso.codigo_curso).all()
+        return aprovacoes
+    
+    @staticmethod
+    def get_min_max_periodos(db: Session, curso_schema: str):
+        min_periodo = db.query(func.min(Aprovacao.periodo)).scalar()
+        max_periodo = db.query(func.max(Aprovacao.periodo)).scalar()
+        
+        return min_periodo, max_periodo
