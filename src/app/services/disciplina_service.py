@@ -1,9 +1,10 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from app.repositories.aprovacao_repository import AprovacaoRepository
 from app.repositories.curso_repository import CursoRepository
 from app.repositories.disciplina_repository import DisciplinaRepository
-from app.models.pre_requisitos import PreRequisitos
-from app.models.aprovacao import Aprovacao
+from app.repositories.curriculo_repository import CurriculoRepository
+from app.repositories.prerequisito_repository import PrerequisitoRepository
 class DisciplinaService:
 
     @staticmethod
@@ -38,10 +39,11 @@ class DisciplinaService:
     def get_disciplina_from_course(db: Session, curso_schema: str):
         try:
             curso = CursoRepository.fetch_curso_by_schema(db, curso_schema)
+            curriculo_atual = CurriculoRepository.fetch_max_curriculo(db, curso.codigo_curso)
 
-            disciplinas = DisciplinaRepository.fetch_disciplinas_by_codigo_curso(db, curso.codigo_curso)
-            curriculo = disciplinas[0].codigo_curriculo
-            pre_requisitos = db.query(PreRequisitos).filter(PreRequisitos.codigo_curso == curso.codigo_curso).filter(PreRequisitos.codigo_curriculo == curriculo).all()
+            disciplinas = DisciplinaRepository.fetch_disciplinas_by_curriculo(db, curso.codigo_curso, curriculo_atual.codigo_curriculo)
+
+            pre_requisitos = PrerequisitoRepository.fetch_prerequisitos_by_curriculo(db, curso.codigo_curso, curriculo_atual.codigo_curriculo)
 
             return DisciplinaService.get_mapa_pre_requisitos(disciplinas, pre_requisitos)
 
@@ -51,13 +53,12 @@ class DisciplinaService:
     @staticmethod
     def get_aprovacoes(db: Session, curso_schema: str):
         curso = CursoRepository.fetch_curso_by_schema(db, curso_schema)
-        aprovacoes = db.query(Aprovacao).filter(Aprovacao.codigo_curso == curso.codigo_curso).all()
+        aprovacoes = AprovacaoRepository.fetch_aprovacoes_by_curso(db, curso.codigo_curso)
         return aprovacoes
     
     @staticmethod
     def get_min_max_periodos(db: Session, curso_schema: str):
-        codigo_curso = CursoRepository.fetch_curso_by_schema(db, curso_schema).codigo_curso
-        min_periodo = db.query(func.min(Aprovacao.periodo)).filter(Aprovacao.codigo_curso == codigo_curso).scalar()
-        max_periodo = db.query(func.max(Aprovacao.periodo)).filter(Aprovacao.codigo_curso == codigo_curso).scalar()
+        curso = CursoRepository.fetch_curso_by_schema(db, curso_schema)
+        min_periodo, max_periodo = AprovacaoRepository.fetch_min_max_periodos(db, curso.codigo_curso)
         
         return min_periodo, max_periodo

@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, ForeignKey
 from app.utils.db import Base
 
-class PreRequisitos(Base):
+class Prerequisito(Base):
     __tablename__ = "pre_requisitos"
     codigo_disciplina = Column(String, ForeignKey('disciplinas.codigo_disciplina'), primary_key=True)
     codigo_prerequisito = Column(String, ForeignKey('disciplinas.codigo_disciplina'), primary_key=True)
