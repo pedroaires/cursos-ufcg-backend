@@ -61,7 +61,7 @@ def get_cursos(db: Session = Depends(get_db)) -> List[CursoIndice]:
         ) for curso in cursos
     ]
 
-@router.get("/{curso}", response_model=InfoCursoResponse, summary="Informações de um curso")
+@router.get("/cursos/{curso}", response_model=InfoCursoResponse, summary="Informações de um curso")
 def get_info_curso(curso: str, db: Session = Depends(get_db)) -> InfoCursoResponse:
     info_curso = CursoService.get_info_curso(db, curso)
     return InfoCursoResponse(
@@ -70,7 +70,7 @@ def get_info_curso(curso: str, db: Session = Depends(get_db)) -> InfoCursoRespon
         campus=info_curso.campus
     )
 
-@router.get("/{curso}/disciplinas", response_model=List[DisciplinaResponse], summary="Lista disciplinas de um curso")
+@router.get("/cursos/{curso}/disciplinas", response_model=List[DisciplinaResponse], summary="Lista disciplinas de um curso")
 def get_disciplinas_by_curso(curso: str, db: Session = Depends(get_db)) -> List[DisciplinaResponse]:
     print(f"aqui: {curso}")
     disciplinas_data = DisciplinaService.get_disciplina_from_course(db, curso)
@@ -88,7 +88,7 @@ def get_disciplinas_by_curso(curso: str, db: Session = Depends(get_db)) -> List[
         ) for disciplina in disciplinas_data
     ]
 
-@router.get("/{curso}/taxa-sucesso", response_model=List[TaxaSucessoResponse], summary="Taxa de sucesso de um curso")
+@router.get("/cursos/{curso}/taxa-sucesso", response_model=List[TaxaSucessoResponse], summary="Taxa de sucesso de um curso")
 def get_taxa_sucesso(curso: str, db: Session = Depends(get_db)) -> List[TaxaSucessoResponse]:
     aprovacoes_data = DisciplinaService.get_aprovacoes(db, curso)
     return [
@@ -100,7 +100,7 @@ def get_taxa_sucesso(curso: str, db: Session = Depends(get_db)) -> List[TaxaSuce
         ) for aprovacao in aprovacoes_data
     ]
 
-@router.get("/{curso}/taxa-sucesso/periodos", response_model=TaxaSucessoPeriodosResponse, summary="Taxa de sucesso de um curso")
+@router.get("/cursos/{curso}/taxa-sucesso/periodos", response_model=TaxaSucessoPeriodosResponse, summary="Taxa de sucesso de um curso")
 def get_taxa_sucesso_periodos(curso: str, db: Session = Depends(get_db)) -> TaxaSucessoPeriodosResponse:
     min, max = DisciplinaService.get_min_max_periodos(db, curso)
     return TaxaSucessoPeriodosResponse(
@@ -108,7 +108,7 @@ def get_taxa_sucesso_periodos(curso: str, db: Session = Depends(get_db)) -> Taxa
         max_periodo=max
     )
 
-@router.get("/{curso}/formandos", response_model=List[FormandosResponse] , summary="Formandos de um curso")
+@router.get("/cursos/{curso}/formandos", response_model=List[FormandosResponse] , summary="Formandos de um curso")
 def get_ingressos_e_formandos(curso: str, db: Session = Depends(get_db)) -> List[FormandosResponse]:
     formandos_data = AlunoService.get_ingressos_e_formandos_por_periodo(db, curso)
 
