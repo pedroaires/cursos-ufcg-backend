@@ -1,19 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from app.utils.db import Base
 
-curriculos_field_conversion = {
-    'courseCode': 'codigo_curso',
-    'curriculumCode': 'codigo_curriculo',
-    'minNumberOfTerms': 'min_periodos',
-    'maxNumberOfTerms': 'max_periodos',
-    'minNumberOfEnrolledCredits': 'min_creditos_matriculados',
-    'maxNumberOfEnrolledCredits': 'max_creditos_matriculados',
-    'minMandatoryCreditsNeeded': 'min_creditos_obrigatorios',
-    'minOptionalCreditsNeeded': 'min_creditos_optativos',
-    'minComplementaryCreditsNeeded': 'min_creditos_complementares',
-    'minAcademicsExtensionActivities': 'min_atividades_extensao'
-}
-
 class Curriculo(Base):
     __tablename__ = "curriculos"
     codigo_curriculo = Column(String, primary_key=True, index=True)

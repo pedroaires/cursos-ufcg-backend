@@ -72,9 +72,7 @@ def get_info_curso(curso: str, db: Session = Depends(get_db)) -> InfoCursoRespon
 
 @router.get("/cursos/{curso}/disciplinas", response_model=List[DisciplinaResponse], summary="Lista disciplinas de um curso")
 def get_disciplinas_by_curso(curso: str, db: Session = Depends(get_db)) -> List[DisciplinaResponse]:
-    print(f"aqui: {curso}")
     disciplinas_data = DisciplinaService.get_disciplina_from_course(db, curso)
-    print(disciplinas_data)
     return [
         DisciplinaResponse(
             codigo_disciplina=disciplina['codigo_disciplina'],
