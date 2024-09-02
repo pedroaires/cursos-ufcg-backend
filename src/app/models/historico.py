@@ -2,10 +2,10 @@ from sqlalchemy import Column, String, Float, ForeignKey
 from app.utils.db import Base
 
 class Historico(Base):
-    __tablename__ = "historicos"
-    # Como estamos usando dados anominizados, a matricula é fake
+    __tablename__ = "historico"
     matricula_fake = Column(String, primary_key=True, index=True)
     codigo_curso = Column(String, ForeignKey('cursos.codigo_curso'), primary_key=True)
+    codigo_curriculo = Column(String, index=True)
     codigo_disciplina = Column(String, ForeignKey('disciplinas.codigo_disciplina'), primary_key=True)
     periodo = Column(Float, primary_key=True)
     media = Column(Float, index=True)

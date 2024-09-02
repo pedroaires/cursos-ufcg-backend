@@ -1,10 +1,7 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from app.repositories.aprovacao_repository import AprovacaoRepository
 from app.repositories.curso_repository import CursoRepository
 from app.repositories.disciplina_repository import DisciplinaRepository
 from app.repositories.curriculo_repository import CurriculoRepository
-from app.repositories.prerequisito_repository import PrerequisitoRepository
 import heapq
 
 class DisciplinaService:
@@ -23,17 +20,19 @@ class DisciplinaService:
                 'pre_requisitos': [],
                 'pos_requisitos': []
             }
-            mapa[disciplina.codigo_disciplina] = disciplina_data
-
+            mapa[disciplina.id] = disciplina_data
+        id_to_codigo = {disciplina.id: disciplina.codigo_disciplina for disciplina in disciplinas}
         for prereq in pre_requisitos:
-            cod_disc = prereq.codigo_disciplina
-            cod_prereq = prereq.codigo_prerequisito
+            disc_id = prereq.disciplina_id
+            prereq_id = prereq.prerequisito_id
 
-            if cod_disc in mapa:
-                mapa[cod_disc]['pre_requisitos'].append(cod_prereq)
-            if cod_prereq in mapa:
-                mapa[cod_prereq]['pos_requisitos'].append(cod_disc)
-
+            if disc_id in mapa:
+                mapa[disc_id]['pre_requisitos'].append(id_to_codigo[prereq_id])
+            if prereq_id in mapa:
+                if disc_id in id_to_codigo:
+                    # significa que o prereq nao é uma disciplina optativa
+                    # entao mapeamos os seus posrequisitos
+                    mapa[prereq_id]['pos_requisitos'].append(id_to_codigo[disc_id])
         result = sorted(mapa.values(), key=lambda x: x['semestre'])
         return result
 
@@ -45,7 +44,7 @@ class DisciplinaService:
 
             disciplinas = DisciplinaRepository.fetch_disciplinas_by_curriculo(db, curso.codigo_curso, curriculo_atual.codigo_curriculo)
 
-            pre_requisitos = PrerequisitoRepository.fetch_prerequisitos_by_curriculo(db, curso.codigo_curso, curriculo_atual.codigo_curriculo)
+            pre_requisitos = DisciplinaRepository.fetch_prerequisitos(db, [disc.id for disc in disciplinas])
 
             discs_s_optativas = [disc for disc in disciplinas if disc.tipo != 'OPCIONAL']
 
@@ -57,21 +56,8 @@ class DisciplinaService:
             
             return sorted(disciplinas_data, key=lambda x: x['semestre'])
 
-        except:
-            raise Exception("Algo deu errado ao buscar as disciplinas")
-    
-    @staticmethod
-    def get_aprovacoes(db: Session, curso_schema: str):
-        curso = CursoRepository.fetch_curso_by_schema(db, curso_schema)
-        aprovacoes = AprovacaoRepository.fetch_aprovacoes_by_curso(db, curso.codigo_curso)
-        return aprovacoes
-    
-    @staticmethod
-    def get_min_max_periodos(db: Session, curso_schema: str):
-        curso = CursoRepository.fetch_curso_by_schema(db, curso_schema)
-        min_periodo, max_periodo = AprovacaoRepository.fetch_min_max_periodos(db, curso.codigo_curso)
-        
-        return min_periodo, max_periodo
+        except Exception as e:
+            raise Exception(f"Algo deu errado ao buscar as disciplinas: {str(e)}")
 
     def __add_optativas(disciplinas_data, min_creditos_optativas, semestre_field='semestre', creditos_field='creditos'):
         """

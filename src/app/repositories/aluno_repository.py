@@ -12,7 +12,7 @@ class AlunoRepository:
                 func.count(Aluno.id_aluno).label('ingressos'),
                 func.sum(
                     case(
-                        (Aluno.codigo_evasao == 'GRADUADO', 1), 
+                        (Aluno.situacao == 'GRADUADO', 1), 
                         else_=0
                         )
                 ).label('formandos')

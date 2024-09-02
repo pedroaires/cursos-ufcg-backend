@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from app.services.curso_service import CursoService
 from app.services.disciplina_service import DisciplinaService
 from app.services.aluno_service import AlunoService
+from app.services.historico_service import HistoricoService
 from typing import List
 
 
@@ -88,19 +89,19 @@ def get_disciplinas_by_curso(curso: str, db: Session = Depends(get_db)) -> List[
 
 @router.get("/cursos/{curso}/taxa-sucesso", response_model=List[TaxaSucessoResponse], summary="Taxa de sucesso de um curso")
 def get_taxa_sucesso(curso: str, db: Session = Depends(get_db)) -> List[TaxaSucessoResponse]:
-    aprovacoes_data = DisciplinaService.get_aprovacoes(db, curso)
+    aprovacoes_data = HistoricoService.get_aprovacoes(db, curso)
     return [
         TaxaSucessoResponse(
-            codigo_disciplina=aprovacao.codigo_disciplina,
-            aprovados=aprovacao.aprovados,
-            total=aprovacao.total,
-            periodo=aprovacao.periodo
+            codigo_disciplina=aprovacao['codigo_disciplina'],
+            aprovados=aprovacao['aprovados'],
+            total=aprovacao['total'],
+            periodo=aprovacao['periodo']
         ) for aprovacao in aprovacoes_data
     ]
 
 @router.get("/cursos/{curso}/taxa-sucesso/periodos", response_model=TaxaSucessoPeriodosResponse, summary="Taxa de sucesso de um curso")
 def get_taxa_sucesso_periodos(curso: str, db: Session = Depends(get_db)) -> TaxaSucessoPeriodosResponse:
-    min, max = DisciplinaService.get_min_max_periodos(db, curso)
+    min, max = HistoricoService.get_min_max_periodos(db, curso)
     return TaxaSucessoPeriodosResponse(
         min_periodo=min,
         max_periodo=max

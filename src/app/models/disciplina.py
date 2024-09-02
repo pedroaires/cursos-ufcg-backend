@@ -1,16 +1,30 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Table
+from sqlalchemy.orm import relationship
 from app.utils.db import Base
+
+prerequisitos = Table(
+    'prerequisitos', Base.metadata,
+    Column('disciplina_id', String, ForeignKey('disciplinas.id', ondelete="CASCADE")),
+    Column('prerequisito_id', String, ForeignKey('disciplinas.id', ondelete="CASCADE"))
+)
+
 
 class Disciplina(Base):
     __tablename__ = "disciplinas"
-    codigo_disciplina = Column(String, primary_key=True, index=True)
+    id = Column(String, primary_key=True, index=True)
+    codigo_disciplina = Column(String, index=True)
     disciplina = Column(String, index=True)
     creditos = Column(Integer, index=True)
     horas = Column(Integer, index=True)
     tipo = Column(String, index=True)
     semestre = Column(Integer, index=True)
     codigo_curriculo = Column(String, index=True)
-    codigo_curso = Column(String, ForeignKey('cursos.codigo_curso'))
+    codigo_curso = Column(String, index=True)
 
-    def __repr__(self):
-        return f"Disciplina: {self.disciplina}, Codigo: {self.codigo_disciplina}"
+    prerequisitos = relationship(
+        "Disciplina",
+        secondary=prerequisitos,
+        primaryjoin=id==prerequisitos.c.disciplina_id,
+        secondaryjoin=id==prerequisitos.c.prerequisito_id,
+        backref="dependentes"
+    )
