@@ -6,4 +6,4 @@
 
 Dentro da pasta apiRest:
 ` export FLASK_APP=apiRest.py `
-` flask apiRest.py `
+` flask run `

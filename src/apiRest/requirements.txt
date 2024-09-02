@@ -6,3 +6,4 @@ mysql-connector-python
 unidecode
 pyodbc
 flask_limiter
+python-dotenv
