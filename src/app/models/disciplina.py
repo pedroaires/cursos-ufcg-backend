@@ -5,9 +5,12 @@ from app.utils.db import Base
 prerequisitos = Table(
     'prerequisitos', Base.metadata,
     Column('disciplina_id', String, ForeignKey('disciplinas.id', ondelete="CASCADE")),
-    Column('prerequisito_id', String, ForeignKey('disciplinas.id', ondelete="CASCADE"))
+    Column('prerequisito_id', String, ForeignKey('disciplinas.id', ondelete="CASCADE")),
+    Column('condicao', String, index=True),
+    Column('ordem_prioridade', Integer, index=True),
+    Column('tipo', String, index=True),
+    Column('operador', String, index=True)
 )
-
 
 class Disciplina(Base):
     __tablename__ = "disciplinas"

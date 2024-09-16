@@ -4,7 +4,8 @@ from app.utils.db import Base
 class Aluno(Base):
     __tablename__ = "alunos"
     id_aluno = Column(Integer, primary_key=True, index=True)
-    periodo_ingressao = Column(Float, index=True)
+    matricula = Column(Integer, index=True)
+    periodo_ingressao = Column(String, index=True)
     motivo_inatividade = Column(String, index=True)
     codigo_curso = Column(String, ForeignKey('cursos.codigo_curso'), index=True)
     situacao = Column(String, index=True)
