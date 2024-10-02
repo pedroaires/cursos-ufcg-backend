@@ -1,10 +1,7 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from app.repositories.aprovacao_repository import AprovacaoRepository
 from app.repositories.curso_repository import CursoRepository
 from app.repositories.disciplina_repository import DisciplinaRepository
 from app.repositories.curriculo_repository import CurriculoRepository
-from app.repositories.prerequisito_repository import PrerequisitoRepository
 import heapq
 
 class DisciplinaService:
@@ -13,27 +10,30 @@ class DisciplinaService:
     def get_mapa_pre_requisitos(disciplinas, pre_requisitos):
         mapa = {}
         for disciplina in disciplinas:
-            disciplina_data = {
-                'codigo_disciplina': disciplina.codigo_disciplina,
-                'disciplina': disciplina.disciplina,
-                'tipo': disciplina.tipo,
-                'semestre': disciplina.semestre,
-                'horas': disciplina.horas,
-                'creditos': disciplina.creditos,
-                'pre_requisitos': [],
-                'pos_requisitos': []
-            }
-            mapa[disciplina.codigo_disciplina] = disciplina_data
-
+            if disciplina.semestre is not None:
+                disciplina_data = {
+                    'codigo_disciplina': disciplina.codigo_disciplina,
+                    'disciplina': disciplina.disciplina,
+                    'tipo': disciplina.tipo,
+                    'semestre': disciplina.semestre,
+                    'horas': disciplina.horas,
+                    'creditos': disciplina.creditos,
+                    'pre_requisitos': [],
+                    'pos_requisitos': []
+                }
+                mapa[disciplina.id] = disciplina_data
+        id_to_codigo = {disciplina.id: disciplina.codigo_disciplina for disciplina in disciplinas}
         for prereq in pre_requisitos:
-            cod_disc = prereq.codigo_disciplina
-            cod_prereq = prereq.codigo_prerequisito
-
-            if cod_disc in mapa:
-                mapa[cod_disc]['pre_requisitos'].append(cod_prereq)
-            if cod_prereq in mapa:
-                mapa[cod_prereq]['pos_requisitos'].append(cod_disc)
-
+            disc_id = prereq.disciplina_id
+            prereq_id = prereq.prerequisito_id
+            if prereq_id is not None:
+                if disc_id in mapa:
+                    mapa[disc_id]['pre_requisitos'].append(id_to_codigo[prereq_id])
+                if prereq_id in mapa:
+                    if disc_id in id_to_codigo:
+                        # significa que o prereq nao é uma disciplina optativa
+                        # entao mapeamos os seus posrequisitos
+                        mapa[prereq_id]['pos_requisitos'].append(id_to_codigo[disc_id])
         result = sorted(mapa.values(), key=lambda x: x['semestre'])
         return result
 
@@ -42,10 +42,11 @@ class DisciplinaService:
         try:
             curso = CursoRepository.fetch_curso_by_schema(db, curso_schema)
             curriculo_atual = CurriculoRepository.fetch_max_curriculo(db, curso.codigo_curso)
+            print("Curriculo:", curriculo_atual)
 
             disciplinas = DisciplinaRepository.fetch_disciplinas_by_curriculo(db, curso.codigo_curso, curriculo_atual.codigo_curriculo)
 
-            pre_requisitos = PrerequisitoRepository.fetch_prerequisitos_by_curriculo(db, curso.codigo_curso, curriculo_atual.codigo_curriculo)
+            pre_requisitos = DisciplinaRepository.fetch_prerequisitos(db, [disc.id for disc in disciplinas])
 
             discs_s_optativas = [disc for disc in disciplinas if disc.tipo != 'OPCIONAL']
 
@@ -57,21 +58,8 @@ class DisciplinaService:
             
             return sorted(disciplinas_data, key=lambda x: x['semestre'])
 
-        except:
-            raise Exception("Algo deu errado ao buscar as disciplinas")
-    
-    @staticmethod
-    def get_aprovacoes(db: Session, curso_schema: str):
-        curso = CursoRepository.fetch_curso_by_schema(db, curso_schema)
-        aprovacoes = AprovacaoRepository.fetch_aprovacoes_by_curso(db, curso.codigo_curso)
-        return aprovacoes
-    
-    @staticmethod
-    def get_min_max_periodos(db: Session, curso_schema: str):
-        curso = CursoRepository.fetch_curso_by_schema(db, curso_schema)
-        min_periodo, max_periodo = AprovacaoRepository.fetch_min_max_periodos(db, curso.codigo_curso)
-        
-        return min_periodo, max_periodo
+        except Exception as e:
+            raise Exception(f"Algo deu errado ao buscar as disciplinas: {str(e)}")
 
     def __add_optativas(disciplinas_data, min_creditos_optativas, semestre_field='semestre', creditos_field='creditos'):
         """
@@ -79,13 +67,13 @@ class DisciplinaService:
         Aloca as disciplinas nos períodos que possuem menos créditos.
         """
         creditos_por_semestre = DisciplinaService.__get_creditos_por_semestre(disciplinas_data, semestre_field, creditos_field)
-        creditos_semestre_heap = [(creditos, semestre) for semestre, creditos in creditos_por_semestre.items()]
-        heapq.heapify(creditos_semestre_heap)
+        # creditos_semestre_heap = [(creditos, semestre) for semestre, creditos in creditos_por_semestre.items()]
+        # heapq.heapify(creditos_semestre_heap)
         
         num_optativas, creditos_optativa, creditos_faltando = DisciplinaService.__calcular_numero_optativas(min_creditos_optativas)
         
         disciplinas_optativas = DisciplinaService.__distribuir_optativas(
-            num_optativas, creditos_faltando, creditos_optativa, creditos_semestre_heap
+            num_optativas, creditos_faltando, creditos_optativa, creditos_por_semestre
         )
 
         return disciplinas_optativas
@@ -121,18 +109,20 @@ class DisciplinaService:
         return num_optativas, creditos_optativa, creditos_faltando
 
 
-    def __distribuir_optativas(num_optativas, creditos_faltando, creditos_optativa, creditos_semestre_heap):
+    def __distribuir_optativas(num_optativas, creditos_faltando, creditos_optativa, creditos_por_semestre):
         """
         Função que distribui disciplinas optativas nos semestres com menos créditos.
         """
+        # semestre negativo para dar prioridade aos ultimos semestres
+        creditos_semestre_heap = [(creditos, -semestre) for semestre, creditos in creditos_por_semestre.items()]
+        heapq.heapify(creditos_semestre_heap)
         disciplinas_optativas = []
         COD_FAKE = 9999999
 
         for i in range(num_optativas):
             valor_credito = creditos_faltando if i == num_optativas - 1 and creditos_faltando > 0 else creditos_optativa
-            min_semestre = heapq.heappop(creditos_semestre_heap)
-            creditos = min_semestre[0]
-            semestre = min_semestre[1]
+            creditos, semestre = heapq.heappop(creditos_semestre_heap)
+            semestre = -semestre
 
             optativa = {
                 'codigo_disciplina': str(COD_FAKE - i),
@@ -146,7 +136,7 @@ class DisciplinaService:
             }
 
             disciplinas_optativas.append(optativa)
-            updated_semestre = (creditos + valor_credito, semestre)
+            updated_semestre = (creditos + valor_credito, -semestre)
             heapq.heappush(creditos_semestre_heap, updated_semestre)
 
         return disciplinas_optativas
