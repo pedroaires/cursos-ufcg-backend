@@ -52,7 +52,15 @@ def home():
 
 @router.get("/cursos", response_model=List[CursoIndice], summary="Lista cursos da UFCG")
 def get_cursos(db: Session = Depends(get_db)) -> List[CursoIndice]:
+    """
+    Retorna uma lista de cursos da UFCG
+
+    Args:
+        db (Session): Sessão do banco de dados
     
+    Returns:
+        List[CursoIndice]: Lista de cursos da UFCG
+    """
     cursos = CursoService.get_cursos_ativos(db)
     return [
         CursoIndice(
@@ -64,6 +72,16 @@ def get_cursos(db: Session = Depends(get_db)) -> List[CursoIndice]:
 
 @router.get("/cursos/{curso}", response_model=InfoCursoResponse, summary="Informações de um curso")
 def get_info_curso(curso: str, db: Session = Depends(get_db)) -> InfoCursoResponse:
+    """
+    Retorna informações de um curso
+
+    Args:
+        curso (str): A string referente ao schema do curso
+        db (Session): Sessão do banco de dados
+    
+    Returns:
+        InfoCursoResponse: Informações do curso
+    """
     info_curso = CursoService.get_info_curso(db, curso)
     return InfoCursoResponse(
         codigo_curso=info_curso.codigo_curso,
@@ -73,6 +91,16 @@ def get_info_curso(curso: str, db: Session = Depends(get_db)) -> InfoCursoRespon
 
 @router.get("/cursos/{curso}/disciplinas", response_model=List[DisciplinaResponse], summary="Lista disciplinas de um curso")
 def get_disciplinas_by_curso(curso: str, db: Session = Depends(get_db)) -> List[DisciplinaResponse]:
+    """
+    Retorna uma lista de disciplinas de um curso
+
+    Args:
+        curso (str): A string referente ao schema do curso
+        db (Session): Sessão do banco de dados
+    
+    Returns:
+        List[DisciplinaResponse]: Lista de disciplinas do curso
+    """
     disciplinas_data = DisciplinaService.get_disciplina_from_course(db, curso)
     return [
         DisciplinaResponse(
@@ -89,6 +117,16 @@ def get_disciplinas_by_curso(curso: str, db: Session = Depends(get_db)) -> List[
 
 @router.get("/cursos/{curso}/taxa-sucesso", response_model=List[TaxaSucessoResponse], summary="Taxa de sucesso de um curso")
 def get_taxa_sucesso(curso: str, db: Session = Depends(get_db)) -> List[TaxaSucessoResponse]:
+    """
+    Retorna a taxa de sucesso de um curso
+    
+    Args:
+        curso (str): A string referente ao schema do curso
+        db (Session): Sessão do banco de dados
+    
+    Returns:
+        List[TaxaSucessoResponse]: Lista de taxas de sucesso do curso
+    """
     aprovacoes_data = HistoricoService.get_aprovacoes(db, curso)
     return [
         TaxaSucessoResponse(
@@ -101,6 +139,16 @@ def get_taxa_sucesso(curso: str, db: Session = Depends(get_db)) -> List[TaxaSuce
 
 @router.get("/cursos/{curso}/taxa-sucesso/periodos", response_model=TaxaSucessoPeriodosResponse, summary="Taxa de sucesso de um curso")
 def get_taxa_sucesso_periodos(curso: str, db: Session = Depends(get_db)) -> TaxaSucessoPeriodosResponse:
+    """
+    Retorna o período mínimo e máximo de um curso
+
+    Args:
+        curso (str): A string referente ao schema do curso
+        db (Session): Sessão do banco de dados
+
+    Returns:
+        TaxaSucessoPeriodosResponse: Período mínimo e máximo do curso
+    """
     min, max = HistoricoService.get_min_max_periodos(db, curso)
     return TaxaSucessoPeriodosResponse(
         min_periodo=min,
@@ -109,6 +157,16 @@ def get_taxa_sucesso_periodos(curso: str, db: Session = Depends(get_db)) -> Taxa
 
 @router.get("/cursos/{curso}/formandos", response_model=List[FormandosResponse] , summary="Formandos de um curso")
 def get_ingressos_e_formandos(curso: str, db: Session = Depends(get_db)) -> List[FormandosResponse]:
+    """
+    Retorna a quantidade de ingressos e formandos de um curso
+
+    Args:
+        curso (str): A string referente ao schema do curso
+        db (Session): Sessão do banco de dados
+    
+    Returns:
+        List[FormandosResponse]: Lista de formandos do curso
+    """
     formandos_data = AlunoService.get_ingressos_e_formandos_por_periodo(db, curso)
 
     return [
